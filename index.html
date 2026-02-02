@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="hi-IN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DailyCalc - All-in-One Calculator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        :root { 
+            --emi-color: #0D47A1; 
+            --gst-color: #1565C0; 
+            --perc-color: #6A1B9A; 
+            --disc-color: #EF6C00; 
+            --pl-color: #D32F2F;
+            --bg-color: #f4f7f9;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body { background-color: var(--bg-color); display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding-bottom: 50px; }
+
+        /* Sticky Navigation */
+        nav { width: 100%; max-width: 450px; background: #fff; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; overflow-x: auto; scrollbar-width: none; }
+        nav::-webkit-scrollbar { display: none; }
+        nav a { padding: 15px 20px; text-decoration: none; color: #666; font-size: 13px; font-weight: 600; flex-shrink: 0; border-bottom: 3px solid transparent; transition: 0.3s; cursor: pointer; }
+        
+        /* Dynamic Theme Classes */
+        .theme-emi { --current: var(--emi-color); }
+        .theme-gst { --current: var(--gst-color); }
+        .theme-perc { --current: var(--perc-color); }
+        .theme-disc { --current: var(--disc-color); }
+        .theme-pl { --current: var(--pl-color); }
+
+        nav a.active { color: var(--current); border-bottom: 3px solid var(--current); }
+
+        /* Calculator Card */
+        .card { width: 92%; max-width: 420px; background: white; padding: 25px; margin: 20px 0; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.08); transition: 0.3s; }
+        h1 { color: var(--current); font-size: 22px; margin-bottom: 20px; text-align: center; }
+
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 13px; color: #666; margin-bottom: 5px; font-weight: 500; }
+        input { width: 100%; padding: 14px; border: 2px solid #eee; border-radius: 10px; font-size: 16px; outline: none; transition: 0.3s; background: #fafafa; }
+        input:focus { border-color: var(--current); background: #fff; }
+
+        .type-selector { display: flex; gap: 8px; margin-bottom: 12px; background: #f0f0f0; padding: 5px; border-radius: 10px; }
+        .type-btn { flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; background: transparent; transition: 0.3s; }
+        .type-btn.active { background: white; color: var(--current); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+        .calc-btn { width: 100%; background: var(--current); color: white; border: none; padding: 16px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: 0.3s; }
+        .calc-btn:active { transform: scale(0.98); }
+
+        /* Result Section */
+        #resultSection { display: none; margin-top: 25px; animation: slideUp 0.4s ease-out; }
+        .res-box { background: #f8fbff; border: 1px solid #eef3f8; padding: 15px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
+        .res-box span { display: block; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+        .res-box strong { font-size: 22px; color: #333; }
+
+        /* Buttons Grid */
+        .action-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+        .btn-small { padding: 12px; border: 1px solid #eee; border-radius: 10px; background: #fff; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+        .btn-small:hover { background: #f9f9f9; }
+        .reset-btn { grid-column: span 2; background: #fff; color: #ff5252; border-color: #ffe0e0; }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Hide all calculators by default */
+        .calc-page { display: none; }
+        .calc-page.active { display: block; }
+    </style>
+</head>
+<body class="theme-emi">
+
+    <nav id="topNav">
+        <a onclick="showPage('emi', this)" class="active">EMI</a>
+        <a onclick="showPage('gst', this)">GST</a>
+        <a onclick="showPage('perc', this)">Percentage</a>
+        <a onclick="showPage('disc', this)">Discount</a>
+        <a onclick="showPage('pl', this)">Profit-Loss</a>
+    </nav>
+
+    <div class="card" id="calcCard">
+        <div id="emi" class="calc-page active">
+            <h1>EMI Calculator</h1>
+            <div class="input-group"><label>Loan Amount (₹)</label><input type="number" id="emi_p" placeholder="5,00,000"></div>
+            <div class="input-group"><label>Interest Rate (% Yearly)</label><input type="number" id="emi_r" placeholder="10.5"></div>
+            <label>Tenure Type</label>
+            <div class="type-selector">
+                <button class="type-btn active" id="emi_y_btn" onclick="toggleEmiType('years')">Years</button>
+                <button class="type-btn" id="emi_m_btn" onclick="toggleEmiType('months')">Months</button>
+            </div>
+            <div class="input-group"><input type="number" id="emi_t" placeholder="Enter years"></div>
+            <button class="calc-btn" onclick="calcEMI()">Calculate EMI</button>
+        </div>
+
+        <div id="gst" class="calc-page">
+            <h1>GST Calculator</h1>
+            <div class="input-group"><label>Amount (₹)</label><input type="number" id="gst_p" placeholder="1000"></div>
+            <div class="input-group"><label>GST Rate (%)</label><input type="number" id="gst_r" placeholder="18"></div>
+            <button class="calc-btn" onclick="calcGST()">Calculate GST</button>
+        </div>
+
+        <div id="perc" class="calc-page">
+            <h1>Percentage Calculator</h1>
+            <div class="input-group"><label>Total Value</label><input type="number" id="perc_v" placeholder="5000"></div>
+            <div class="input-group"><label>Percentage (%)</label><input type="number" id="perc_p" placeholder="20"></div>
+            <button class="calc-btn" onclick="calcPerc()">Calculate</button>
+        </div>
+
+        <div id="disc" class="calc-page">
+            <h1>Discount Calculator</h1>
+            <div class="input-group"><label>Original Price (₹)</label><input type="number" id="disc_p" placeholder="2000"></div>
+            <div class="input-group"><label>Discount (%)</label><input type="number" id="disc_r" placeholder="15"></div>
+            <button class="calc-btn" onclick="calcDisc()">Calculate Price</button>
+        </div>
+
+        <div id="pl" class="calc-page">
+            <h1>Profit & Loss</h1>
+            <div class="input-group"><label>Cost Price (₹)</label><input type="number" id="pl_cp" placeholder="800"></div>
+            <div class="input-group"><label>Selling Price (₹)</label><input type="number" id="pl_sp" placeholder="1000"></div>
+            <button class="calc-btn" onclick="calcPL()">Calculate P/L</button>
+        </div>
+
+        <div id="resultSection">
+            <div id="dynamicResults"></div>
+            <div class="action-btns">
+                <button class="btn-small" onclick="copyText()">📋 Copy</button>
+                <button class="btn-small" onclick="shareMe()">📤 Share</button>
+                <button class="btn-small" onclick="makePDF()">📄 Download HD PDF</button>
+                <button class="btn-small reset-btn" onclick="resetAll()">🔄 Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let emiType = 'years';
+        let currentMode = 'emi';
+
+        function showPage(pageId, el) {
+            currentMode = pageId;
+            document.querySelectorAll('.calc-page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).className = 'calc-page active';
+            
+            document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+            el.classList.add('active');
+            
+            document.body.className = `theme-${pageId}`;
+            resetAll();
+        }
+
+        // --- EMI Logic ---
+        function toggleEmiType(t) {
+            emiType = t;
+            document.getElementById('emi_y_btn').classList.toggle('active', t === 'years');
+            document.getElementById('emi_m_btn').classList.toggle('active', t === 'months');
+            document.getElementById('emi_t').placeholder = `Enter ${t}`;
+        }
+
+        function calcEMI() {
+            const P = parseFloat(document.getElementById('emi_p').value);
+            const R = (parseFloat(document.getElementById('emi_r').value) / 12) / 100;
+            const T = parseFloat(document.getElementById('emi_t').value);
+            const N = (emiType === 'years') ? T * 12 : T;
+
+            if(!P || !R || !N) return;
+            const emi = P * R * Math.pow(1 + R, N) / (Math.pow(1 + R, N) - 1);
+            const total = emi * N;
+            
+            showResult(`
+                <div class="res-box"><span>Monthly EMI</span><strong>₹${emi.toLocaleString('en-IN',{maximumFractionDigits:0})}</strong></div>
+                <div class="res-box"><span>Total Interest</span><strong>₹${(total-P).toLocaleString('en-IN',{maximumFractionDigits:0})}</strong></div>
+                <div class="res-box"><span>Total Payment</span><strong>₹${total.toLocaleString('en-IN',{maximumFractionDigits:0})}</strong></div>
+            `);
+        }
+
+        // --- GST Logic ---
+        function calcGST() {
+            const p = parseFloat(document.getElementById('gst_p').value);
+            const r = parseFloat(document.getElementById('gst_r').value);
+            const gst = (p * r) / 100;
+            showResult(`
+                <div class="res-box"><span>GST Amount</span><strong>₹${gst.toFixed(2)}</strong></div>
+                <div class="res-box"><span>Total Amount</span><strong>₹${(p+gst).toFixed(2)}</strong></div>
+            `);
+        }
+
+        // --- Percentage Logic ---
+        function calcPerc() {
+            const v = parseFloat(document.getElementById('perc_v').value);
+            const p = parseFloat(document.getElementById('perc_p').value);
+            showResult(`<div class="res-box"><span>Result</span><strong>${(v * p / 100).toFixed(2)}</strong></div>`);
+        }
+
+        // --- Discount Logic ---
+        function calcDisc() {
+            const p = parseFloat(document.getElementById('disc_p').value);
+            const r = parseFloat(document.getElementById('disc_r').value);
+            const d = (p * r) / 100;
+            showResult(`
+                <div class="res-box"><span>You Save</span><strong>₹${d.toFixed(2)}</strong></div>
+                <div class="res-box"><span>Final Price</span><strong>₹${(p-d).toFixed(2)}</strong></div>
+            `);
+        }
+
+        // --- Profit Loss Logic ---
+        function calcPL() {
+            const cp = parseFloat(document.getElementById('pl_cp').value);
+            const sp = parseFloat(document.getElementById('pl_sp').value);
+            const diff = sp - cp;
+            const perc = (Math.abs(diff) / cp) * 100;
+            const status = diff >= 0 ? "PROFIT" : "LOSS";
+            showResult(`
+                <div class="res-box"><span>Status</span><strong style="color:${diff>=0?'green':'red'}">${status}</strong></div>
+                <div class="res-box"><span>Amount</span><strong>₹${Math.abs(diff).toFixed(2)}</strong></div>
+                <div class="res-box"><span>Percentage</span><strong>${perc.toFixed(2)}%</strong></div>
+            `);
+        }
+
+        // --- Common Helpers ---
+        function showResult(html) {
+            document.getElementById('dynamicResults').innerHTML = html;
+            document.getElementById('resultSection').style.display = 'block';
+        }
+
+        function resetAll() {
+            document.querySelectorAll('input').forEach(i => i.value = '');
+            document.getElementById('resultSection').style.display = 'none';
+        }
+
+        function copyText() {
+            const res = document.getElementById('dynamicResults').innerText;
+            navigator.clipboard.writeText(`DailyCalc Result:\n${res}\nVisit: ${window.location.href}`);
+            alert("Copied!");
+        }
+
+        async function shareMe() {
+            try { await navigator.share({ title: 'DailyCalc Result', url: window.location.href }); } catch { copyText(); }
+        }
+
+        function makePDF() {
+            const element = document.getElementById('calcCard');
+            const opt = {
+                margin: 0.3,
+                filename: `${currentMode}-result.pdf`,
+                image: { type: 'jpeg', quality: 1 },
+                html2canvas: { scale: 4 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>
